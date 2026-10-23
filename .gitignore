@@ -1,0 +1,35 @@
+# --- Segurança e Dados Sensíveis ---
+# Bloqueia qualquer arquivo de dados (CSV, Excel, JSON, TXT) que contenha extrações reais do banco
+*.csv
+*.xlsx
+*.xls
+*.json
+*.txt
+*.log
+
+# --- Python ---
+# Bloqueia ambientes virtuais e caches do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- dbt (Data Build Tool) ---
+# Bloqueia logs, pacotes baixados e artefatos de compilação do dbt que expõem schemas reais
+logs/
+target/
+dbt_packages/
+dbt_modules/
+
+# --- IDEs e Sistema Operacional ---
+.ipynb_checkpoints
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
