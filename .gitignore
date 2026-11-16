@@ -1,35 +1,135 @@
-# --- Segurança e Dados Sensíveis ---
-# Bloqueia qualquer arquivo de dados (CSV, Excel, JSON, TXT) que contenha extrações reais do banco
-*.csv
+# ============================================================================
+# DADOS SENSÍVEIS (LGPD)
+# ============================================================================
+
 *.xlsx
 *.xls
-*.json
+*.csv
 *.txt
-*.log
+*.zip
+*.rar
+*.7z
 
-# --- Python ---
-# Bloqueia ambientes virtuais e caches do Python
+inputs/*
+!inputs/.gitkeep
+
+exports/*
+!exports/.gitkeep
+
+output/*
+!output/.gitkeep
+
+temp/*
+!temp/.gitkeep
+
+# Bases atuariais e censitárias
+*censo*
+*aderencia*
+*atuarial*
+*massa*
+*segurados*
+*pensionistas*
+*aposentados*
+*ativos*
+
+# ============================================================================
+# SQL SERVER / SSMS
+# ============================================================================
+
+*.bak
+*.trn
+*.mdf
+*.ldf
+*.ndf
+
+# Scripts locais
+*.sqlproj.user
+*.dbmdl
+
+# ============================================================================
+# LOGS
+# ============================================================================
+
+*.log
+logs/
+*.tmp
+*.temp
+
+# ============================================================================
+# PYTHON (FUTURA AUTOMAÇÃO)
+# ============================================================================
+
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
-.Python
-env/
-venv/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
 
-# --- dbt (Data Build Tool) ---
-# Bloqueia logs, pacotes baixados e artefatos de compilação do dbt que expõem schemas reais
-logs/
+.venv/
+venv/
+env/
+
+.pytest_cache/
+.mypy_cache/
+
+# ============================================================================
+# DBT (FUTURO)
+# ============================================================================
+
 target/
 dbt_packages/
-dbt_modules/
+logs/
 
-# --- IDEs e Sistema Operacional ---
-.ipynb_checkpoints
-.vscode/
-.idea/
+# ============================================================================
+# JUPYTER
+# ============================================================================
+
+.ipynb_checkpoints/
+
+# ============================================================================
+# SISTEMA OPERACIONAL
+# ============================================================================
+
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ============================================================================
+# VS CODE
+# ============================================================================
+
+.vscode/
+.history/
+
+# ============================================================================
+# JETBRAINS
+# ============================================================================
+
+.idea/
+
+# ============================================================================
+# ARQUIVOS DE CONFIGURAÇÃO SENSÍVEIS
+# ============================================================================
+
+.env
+.env.*
+secrets.*
+credentials.*
+config.local.*
+
+# ============================================================================
+# ARTEFATOS TEMPORÁRIOS DE CARGA RPPS
+# ============================================================================
+
+*rpps*.csv
+*rpps*.xlsx
+*tmp_rpps*
+*carga_rpps*
+*matriculas*
+*cpf*
+*cpfs*
+
+# ============================================================================
+# PLACEHOLDERS
+# ============================================================================
+
+!.gitkeep
