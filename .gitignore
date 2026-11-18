@@ -1,11 +1,16 @@
 # ============================================================================
-# DADOS SENSÍVEIS (LGPD)
+# DADOS SENSÍVEIS E EXTRAÇÕES (LGPD)
 # ============================================================================
 
 *.xlsx
 *.xls
 *.csv
 *.txt
+*.tsv
+*.parquet
+*.feather
+*.json
+*.xml
 *.zip
 *.rar
 *.7z
@@ -22,15 +27,26 @@ output/*
 temp/*
 !temp/.gitkeep
 
-# Bases atuariais e censitárias
-*censo*
-*aderencia*
-*atuarial*
-*massa*
-*segurados*
-*pensionistas*
-*aposentados*
-*ativos*
+# Bloqueio específico de arquivos de dados com termos atuariais/censitários
+# (Protege extrações reais sem bloquear scripts .sql e documentações .md)
+*censo*.csv
+*censo*.xlsx
+*censo*.xls
+*censo*.txt
+*aderencia*.csv
+*aderencia*.xlsx
+*atuarial*.csv
+*atuarial*.xlsx
+*massa*.csv
+*massa*.xlsx
+*segurados*.csv
+*segurados*.xlsx
+*pensionistas*.csv
+*pensionistas*.xlsx
+*aposentados*.csv
+*aposentados*.xlsx
+*ativos*.csv
+*ativos*.xlsx
 
 # ============================================================================
 # SQL SERVER / SSMS
@@ -42,12 +58,12 @@ temp/*
 *.ldf
 *.ndf
 
-# Scripts locais
+# Scripts e projetos locais
 *.sqlproj.user
 *.dbmdl
 
 # ============================================================================
-# LOGS
+# LOGS E TEMPORÁRIOS
 # ============================================================================
 
 *.log
@@ -77,7 +93,6 @@ env/
 
 target/
 dbt_packages/
-logs/
 
 # ============================================================================
 # JUPYTER

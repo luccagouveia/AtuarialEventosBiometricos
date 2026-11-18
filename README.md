@@ -1,601 +1,99 @@
-# Layout Eventos Biométricos (Atuarial)
+# 📊 Layout Eventos Biométricos (Atuarial) — SQL Server Avançado & Performance Tuning (RPPS)
 
-> Projeto de extração, tratamento e consolidação de informações biométricas e previdenciárias destinadas à composição da base cadastral utilizada em avaliações atuariais e estudos de aderência de RPPS
->
-> **Status:** Homologado e em Produção
-> **Stack Tecnológica:** Microsoft SQL Server, T-SQL, Data Engineering, Data Quality, Data Governance e Modelagem de Dados
-> **Domínio de Negócio:** Previdência Pública (RPPS), Censo Previdenciário, Avaliação Atuarial, Aderência Cadastral e Eventos Biométricos
-> **Arquitetura da Solução:** Processamento Modular Orientado a Regras de Negócio, Alta Performance, Governança de Dados, Auditabilidade e LGPD by Design
+> Solução analítica em **Microsoft SQL Server (T-SQL)** para extração, saneamento cadastral e consolidação longitudinal de informações biométricas e previdenciárias destinadas a **Estudos de Aderência Atuarial**, **Censo Previdenciário** e **Avaliações Atuariais** de RPPS, em conformidade com a **Portaria MTP nº 1.467/2022**.
 
 ---
 
-# Visão Geral
+# 1. Visão Geral e Contexto de Negócio
 
-Este projeto foi desenvolvido para atender necessidades de:
-
-- Censo Previdenciário;
-- Teste de Aderência Atuarial;
-- Estudos de Hipóteses Biométricas;
-- Avaliações Atuariais;
-- Consistência Cadastral;
-- Construção de Bases Históricas para projeções atuariais.
-
-O objetivo principal consiste em transformar bases operacionais complexas em datasets atuariais padronizados, auditáveis e aderentes às regulamentações aplicáveis aos RPPS.
-
-A solução consolida informações referentes a:
-
-- Segurados ativos;
-- Aposentados;
-- Pensionistas;
-- Beneficiários cessados;
-- Óbitos;
-- Exonerações;
-- Aposentadorias;
-- Invalidez;
-- Dependentes;
-- Históricos funcionais.
+Desenvolvido para atender às especificações da consultoria atuarial (**FIA-USP**) e à **Divisão de Gestão da Base Cadastral (DGBC)**, o projeto transforma bases operacionais legadas em datasets padronizados (`1:1`) e auditáveis. Subscreve o Censo Previdenciário, Testes de Aderência, Avaliações Anuais e a consolidação de coortes históricas (`01/01/2015` a `31/05/2026`) abrangendo ativos, aposentados, pensionistas, desligamentos e dependentes.
 
 ---
 
-# Problema de Negócio
+# 2. Problema de Negócio
 
-Processos atuariais exigem bases históricas e cadastrais extremamente consistentes.
-
-Entretanto, normalmente os sistemas previdenciários apresentam:
-
-- Múltiplas fontes de dados;
-- Regras dispersas;
-- Registros históricos incompletos;
-- Mudanças de estrutura funcional;
-- Eventos armazenados em formatos inconsistentes;
-- Alto volume de dados;
-- Dependências entre segurados e beneficiários.
-
-Isso dificulta:
-
-- Avaliações atuariais;
-- Estudos de aderência;
-- Auditorias;
-- Consolidações históricas;
-- Atendimento a órgãos fiscalizadores.
+Sistemas previdenciários legados apresentam desafios como:
+- Múltiplas fontes fragmentadas e regras de movimentação dispersas (`49` variações de vacância);
+- Datas armazenadas em formato textual (`VARCHAR`) com espaços irregulares;
+- Múltiplos vínculos por indivíduo (`1:N`) e alto volume de dados (ex.: cabeçalhos de folha com **+51 milhões de registros**);
+- Dependências complexas entre instituidores e pensionistas.
 
 ---
 
-# Solução Desenvolvida
+# 3. Metodologia (Ciclo 5D)
 
-Foi construída uma arquitetura de extração composta por múltiplos layouts especializados.
-
-Cada layout possui finalidade específica e regras próprias de negócio.
-
-## Layouts Implementados
-
-| Layout | Objetivo |
-|----------|----------|
-| `01-layout-ativos` | Base de segurados ativos |
-| `01-layout-aposentados` | Base de aposentados vigentes |
-| `02-layout-corte` | Coorte histórica de desligamentos |
-| `03-layout-pensionistas-atuais` | Pensionistas vigentes |
-| `04-layout-pensionistas-vacancia` | Pensionistas com benefício encerrado |
-| `04-layout-pensionistas-historico` | Histórico de desligamentos e eventos biométricos |
+1. **Discovery:** Levantamento de requisitos, mapeamento de legados e enquadramento normativo.
+2. **Development:** Modelagem em T-SQL, filtros de elegibilidade, regras de precedência biométrica e otimização.
+3. **Deploy:** Validação de planos de execução, monitoramento de concorrência e controle do `TempDB`.
+4. **Delivery:** Homologação cruzada de quantitativos e entrega dos layouts consolidados.
+5. **Documentation:** Criação do dicionário de dados, linhagem (*Data Lineage*) e sanitização *LGPD by Design*.
 
 ---
 
-# Arquitetura de Dados
+# 4. Soluções e Layouts Homologados
 
-## Visão Conceitual
+Arquitetura modular dividida em 6 layouts especializados:
 
-```text
- ┌────────────────────────┐
- │ Sistemas Corporativos  │
- └────────────┬───────────┘
-              │
-              ▼
- ┌────────────────────────┐
- │ Extração SQL Modular   │
- └────────────┬───────────┘
-              │
-              ▼
- ┌────────────────────────┐
- │ Camada de Saneamento   │
- └────────────┬───────────┘
-              │
-              ▼
- ┌────────────────────────┐
- │ Regras de Negócio      │
- └────────────┬───────────┘
-              │
-              ▼
- ┌────────────────────────┐
- │ Consolidação Atuarial  │
- └────────────┬───────────┘
-              │
-              ▼
- ┌────────────────────────┐
- │ Datasets de Entrega    │
- └────────────────────────┘
-```
+- **01 — Ativos Vigentes:** Servidores efetivos (`REGIMEPREV = 'RPPS'`) e último cargo.
+- **01 — Aposentados Vigentes:** Aposentados não vacanciados (programados vs. invalidez).
+- **02 — Coorte Histórica:** Desligamentos, exonerações e óbitos (`2015–2026`).
+- **03 — Pensionistas Atuais:** Pensionistas vigentes com tradução de parentesco/condição.
+- **04 — Pensionistas Vacância / Histórico Legado:** Benefícios encerrados ou óbitos desde 2015.
+
+*(Consulte o repositório completo para acessar os scripts SQL e as especificações detalhadas de cada layout).*
 
 ---
 
-# Arquitetura Técnica
+# 5. Arquitetura (EFMP) & Regras de Negócio
 
-A arquitetura foi construída seguindo princípios de:
+Operada no padrão **Extract-Filter-Materialize-Project (EFMP)**, garante *Data Lineage* rastreável, separação de domínios, alta performance, idempotência e LGPD by Design. 
 
-- Data Lineage
-- Separation of Concerns
-- Performance First
-- Reprodutibilidade
-- Auditabilidade
-- Governança de Dados
-
-## Componentes
-
-### Tabela Fato Principal
-
-Representa os vínculos previdenciários.
-
-Alias de documentação:
-
-```text
-tbl_historico_vinculos
-```
-
-Responsável por:
-
-- ingresso;
-- desligamento;
-- aposentadoria;
-- condição funcional;
-- situação previdenciária.
+**Regras principais:**
+- **RN001 (Elegibilidade):** Restringe ao RPPS e à janela temporal de `01/01/2015` a `31/05/2026`.
+- **RN002 (Precedência Biométrica):** Higieniza motivos de vacância (`FORMAVAC`) em óbitos, desligamentos e aposentadorias, preservando datas cruzadas sem sobreposições indevidas.
+- **RN003–RN006:** Garantem unicidade de pensionistas por beneficiário único, reconstrução da data de ingresso (`DTEXERC`), última carreira válida e classificação correta de dependentes.
 
 ---
 
-### Cadastro Biográfico
+# 6. Performance e Benchmark
 
-Alias:
+A adoção de `READ UNCOMMITTED`, estruturas temporárias indexadas (`#TMP` com `CLUSTERED INDEX`), *Predication Pushdown* (`WHERE EXISTS`) e pré-agregações reduziu drasticamente o custo computacional:
 
-```text
-tbl_cadastro_pessoas
-```
-
-Responsável por:
-
-- sexo;
-- data de nascimento;
-- identificação cadastral.
+| Indicador Técnico | Antes | Depois |
+| :--- | :--- | :--- |
+| **Tempo de Execução** | ~45 min | **~1 min** (~97,7% de ganho) |
+| **Leituras Lógicas** | *Full Scans* pesados | **Reduzidas em >95%** (*Index Seeks*) |
+| **Consumo de `TempDB`** | Spills em disco | **Controlado** (`#TMP` indexadas com `DROP`) |
+| **Concorrência** | *Shared Locks* / *Deadlocks* | **Zero bloqueios** (`READ UNCOMMITTED`) |
 
 ---
 
-### Controle de Encerramentos
+# 7. Governança e LGPD (*Privacy by Design*)
 
-Alias:
-
-```text
-tbl_eventos_encerramento
-```
-
-Responsável por:
-
-- óbitos;
-- exonerações;
-- vacâncias;
-- aposentadorias.
+Em conformidade com a Lei nº 13.709/2018, o projeto utiliza **zero dados reais** (sem CPFs, nomes ou bases exportadas em CSV/XLSX). Bancos e tabelas reais são abstraídos por aliases públicos sob o namespace `rpps_dw` (ex.: `fato_folha_cabecalho`, `tbl_historico_vinculos`, `dim_carreiras`).
 
 ---
 
-### Histórico de Beneficiários
-
-Alias:
-
-```text
-tbl_beneficiarios_previdenciarios
-```
-
-Responsável por:
-
-- dependentes;
-- pensionistas;
-- relação com instituidor.
-
----
-
-### Histórico Financeiro
-
-Alias:
-
-```text
-fato_financeira_previdenciaria
-```
-
-Responsável por:
-
-- abono permanência;
-- competências históricas;
-- benefícios financeiros.
-
----
-
-### Evolução Funcional
-
-Alias:
-
-```text
-tbl_evolucao_funcional
-```
-
-Responsável por:
-
-- cargos;
-- carreiras;
-- progressões;
-- movimentação funcional.
-
----
-
-# Regras de Negócio Principais
-
-## RN001 — Elegibilidade Temporal
-
-Considera:
-
-- registros atuais;
-- registros históricos;
-- eventos ocorridos a partir da data de corte definida pelo estudo.
-
----
-
-## RN002 — Classificação de Eventos
-
-Os eventos são segregados entre:
-
-- óbito;
-- aposentadoria programada;
-- aposentadoria por invalidez;
-- exoneração;
-- vacância.
-
-Evita interpretação incorreta de um mesmo evento por múltiplas categorias.
-
----
-
-## RN003 — Pensionistas
-
-A quantidade de pensionistas é calculada por indivíduo beneficiário.
-
-Não é calculada por benefício.
-
-Isso evita subdimensionamento de dependentes vinculados ao mesmo instituidor.
-
----
-
-## RN004 — Data de Ingresso
-
-A data considerada corresponde ao primeiro ingresso identificado na carreira pública.
-
-A regra reconstrói toda a cronologia funcional do segurado.
-
----
-
-## RN005 — Última Carreira
-
-A carreira retornada representa:
-
-- cargo atual dos ativos;
-- último cargo ocupado para desligados;
-- última posição funcional válida antes do evento biométrico.
-
----
-
-## RN006 — Abono de Permanência
-
-A identificação ocorre através da primeira ocorrência histórica do benefício.
-
-Permitindo análises futuras de comportamento previdenciário.
-
----
-
-# Técnicas de Engenharia Utilizadas
-
-## Common Table Expressions (CTEs)
-
-Utilizadas para:
-
-- modularização;
-- legibilidade;
-- manutenção.
-
----
-
-## Predication Pushdown
-
-Aplicado para:
-
-- reduzir varreduras;
-- limitar leitura precoce dos dados.
-
----
-
-## EXISTS-Based Filtering
-
-Substituição de junções custosas quando apenas existência era necessária.
-
-Benefícios:
-
-- menor I/O;
-- menor uso de memória.
-
----
-
-## Temporary Indexed Structures
-
-Uso intensivo de:
-
-```sql
-#temp tables
-```
-
-com índices apropriados.
-
-Resultado:
-
-- redução de tempo de execução;
-- estabilidade operacional.
-
----
-
-## Conversões Seguras
-
-Uso de:
-
-```sql
-TRY_CONVERT()
-```
-
-para:
-
-- datas;
-- numéricos;
-- saneamento de dados legados.
-
----
-
-## Window Functions
-
-Utilizadas para:
-
-- reconstrução histórica;
-- identificação de último cargo;
-- ordenação cronológica.
-
-Exemplo:
-
-```sql
-ROW_NUMBER()
-OVER(
-PARTITION BY Segurado
-ORDER BY DataEvento DESC
-)
-```
-
----
-
-# Performance
-
-## Situação Original
-
-Consultas analíticas apresentavam:
-
-- alto consumo de memória;
-- leituras excessivas;
-- tempos superiores a 45 minutos.
-
----
-
-## Situação Final
-
-Após otimização:
-
-| Indicador | Antes | Depois |
-|------------|--------|---------|
-| Tempo execução | ~45 min | ~1 min |
-| Leituras lógicas | Muito altas | Reduzidas |
-| Consumo de TempDB | Elevado | Controlado |
-| Escalabilidade | Limitada | Alta |
-
----
-
-# Governança de Dados
-
-O projeto segue práticas de:
-
-## Data Quality
-
-- validação de datas;
-- tratamento de campos inválidos;
-- remoção de duplicidades;
-- consistência referencial.
-
----
-
-## Data Lineage
-
-Todo atributo possui rastreabilidade:
-
-```text
-Origem
- ↓
-Transformação
- ↓
-Regra Negócio
- ↓
-Saída
-```
-
----
-
-## Auditabilidade
-
-Cada layout possui:
-
-- regras documentadas;
-- critérios de inclusão;
-- critérios de exclusão;
-- justificativas atuariais.
-
----
-
-# Segurança e LGPD
-
-## Política de Anonimização
-
-Por diretriz de segurança:
-
-✅ Não são divulgados:
-
-- bancos de dados reais;
-- tabelas reais;
-- views reais;
-- colunas reais;
-- entidades reais;
-- servidores;
-- conexões.
-
----
-
-## Convenção de Aliases
-
-| Ambiente Real | Alias Público |
-|---------------|---------------|
-| Banco Previdenciário | `rpps_dw` |
-| Histórico de vínculos | `tbl_historico_vinculos` |
-| Cadastro biográfico | `tbl_cadastro_pessoas` |
-| Controle de eventos | `tbl_eventos_encerramento` |
-| Histórico financeiro | `fato_financeira_previdenciaria` |
-| Evolução funcional | `tbl_evolucao_funcional` |
-| Beneficiários | `tbl_beneficiarios_previdenciarios` |
-| Dimensão cargos | `dim_carreiras` |
-
----
-
-# Estrutura do Repositório
+# 8. Estrutura do Repositório
 
 ```text
 AtuarialEventosBiometricos/
-
-├── README.md
-
 ├── docs/
-│
-├── arquitetura/
-│   ├── data-lineage.md
-│   ├── regras-negocio.md
-│   ├── modelagem-conceitual.md
-│
-├── sql/
-│
-│   ├── 01-layout-ativos/
-│   ├── 02-layout-aposentados/
-│   ├── 03-layout-corte/
-│   ├── 04-layout-pensionistas/
-│
-├── tests/
-│
-├── validation/
-│
-├── samples/
-│
-├── diagrams/
-│
-└── assets/
+│   ├── engenharia-sql/   # Diretrizes T-SQL, performance e troubleshooting
+│   └── governance/       # Layouts, Data Lineage, dicionário LGPD e Portaria MTP 1467
+├── sql_queries/          # Scripts SQL modulares (ativos, aposentados, pensionistas, cortes)
+├── .gitignore            # Proteção contra vazamento de arquivos de dados
+└── README.md
 ```
 
 ---
 
-# Métricas do Projeto
+# 9. Métricas, Competências e Roadmap
 
-## Volumetria
+- **Volumetria:** +113 mil ativos em `1:1`, +51 milhões de registros de folha filtrados, +40 mil registros históricos auditados (2015–2026).
+- **Stack:** T-SQL Avançado, Query Performance Tuning, Modelagem Analítica RPPS, Portaria MTP 1467/2022 e LGPD.
+- **Próximos Passos:** Automação de extrações via Python, validação de schemas em CI/CD e monitoramento contínuo de novos códigos `FORMAVAC`.
 
-- Mais de 100 mil segurados processados.
-- Mais de 40 mil registros históricos auditados.
-- Múltiplos anos de histórico previdenciário.
+> **Nota:** Solução homologada e adaptada para fins de portfólio técnico, com anonimização completa de entidades e credenciais.
 
----
-
-## Complexidade
-
-- Dados cadastrais;
-- Dados funcionais;
-- Eventos biométricos;
-- Benefícios;
-- Dependentes;
-- Histórico financeiro.
-
----
-
-# Competências Demonstradas
-
-## Engenharia de Dados
-
-- SQL Server
-- T-SQL Avançado
-- Data Modeling
-- ETL
-- Data Quality
-- Performance Tuning
-
-## Arquitetura
-
-- Data Lineage
-- Governança de Dados
-- Modelagem Conceitual
-- Modelagem Lógica
-
-## Atuária
-
-- Censo Previdenciário
-- Teste de Aderência
-- Hipóteses Biométricas
-- Segregação de Massa
-- Estudos Atuariais
-
-## Governança
-
-- LGPD
-- Auditabilidade
-- Reprodutibilidade
-- Documentação Técnica
-
----
-
-# Roadmap
-
-## Próximas Evoluções
-
-- Automatização via Python;
-- Orquestração de pipelines;
-- Validação automática de layouts;
-- Testes de qualidade de dados;
-- Migração para arquitetura Lakehouse;
-- Modelagem em dbt;
-- Integração CI/CD.
-
----
-
-# Disclaimer
-
-Este repositório possui caráter exclusivamente educacional e de demonstração técnica.
-
-Todos os elementos que possam permitir identificação de:
-
-- órgãos;
-- entidades;
-- pessoas;
-- bases de dados;
-- ambientes corporativos;
-
-foram anonimizados e substituídos por aliases aderentes às melhores práticas de segurança da informação e proteção de dados.
-
-Nenhum dado real, pessoal ou sigiloso é distribuído neste projeto.
-
----
-© Engenharia de Dados Aplicada à Previdência Pública | Portfólio Técnico
+© SQL Server Avançado, Performance Tuning & Governança Atuarial | Portfólio Técnico
